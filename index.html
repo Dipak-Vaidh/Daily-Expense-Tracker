@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Expense Tracker App</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  <link rel="manifest" href="manifest.json" />
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+
+  <style>
+    body { background: #f8f9fa; }
+    .amount { font-weight: bold; }
+    .report-title { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="text-center my-4">💰 Daily Expense Tracker</h1>
+
+    <div class="input-group mb-3">
+      <input type="text" id="descInput" class="form-control" placeholder="Description..." />
+      <input type="number" id="amountInput" class="form-control ml-2" placeholder="Amount..." />
+      <div class="input-group-append">
+        <button class="btn btn-primary" id="addExpenseBtn">Add</button>
+      </div>
+    </div>
+
+    <ul class="list-group" id="expenseList"></ul>
+
+    <h4 class="report-title">📊 Weekly Report</h4>
+    <p id="weeklyReport">Total: ₹0</p>
+
+    <h4 class="report-title">📅 Monthly Report</h4>
+    <p id="monthlyReport">Total: ₹0</p>
+
+    <h4 class="report-title">📆 Yearly Report</h4>
+    <p id="yearlyReport">Total: ₹0</p>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script>
+    $(document).ready(function () {
+      let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+
+      function saveExpenses() {
+        localStorage.setItem('expenses', JSON.stringify(expenses));
+      }
+
+      function renderExpenses() {
+        $('#expenseList').empty();
+        expenses.forEach((exp, index) => {
+          $('#expenseList').append(`
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>${exp.desc} <small class="text-muted">(${new Date(exp.date).toLocaleDateString()})</small></div>
+              <div>
+                <span class="amount">₹${exp.amount}</span>
+                <button class="btn btn-danger btn-sm ml-2 deleteExpense" data-index="${index}">Delete</button>
+              </div>
+            </li>
+          `);
+        });
+      }
+
+      function updateReports() {
+        const now = new Date();
+        let weekTotal = 0, monthTotal = 0, yearTotal = 0;
+
+        expenses.forEach(exp => {
+          const expDate = new Date(exp.date);
+          const diffDays = (now - expDate) / (1000 * 60 * 60 * 24);
+
+          if (diffDays <= 7) weekTotal += Number(exp.amount);
+          if (expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear()) monthTotal += Number(exp.amount);
+          if (expDate.getFullYear() === now.getFullYear()) yearTotal += Number(exp.amount);
+        });
+
+        $('#weeklyReport').text(`Total: ₹${weekTotal}`);
+        $('#monthlyReport').text(`Total: ₹${monthTotal}`);
+        $('#yearlyReport').text(`Total: ₹${yearTotal}`);
+      }
+
+      $('#addExpenseBtn').click(function () {
+        let desc = $('#descInput').val().trim();
+        let amount = $('#amountInput').val().trim();
+        if (desc && amount) {
+          expenses.push({ desc, amount, date: new Date() });
+          saveExpenses();
+          renderExpenses();
+          updateReports();
+          $('#descInput').val('');
+          $('#amountInput').val('');
+        }
+      });
+
+      $('#expenseList').on('click', '.deleteExpense', function () {
+        const index = $(this).data('index');
+        expenses.splice(index, 1);
+        saveExpenses();
+        renderExpenses();
+        updateReports();
+      });
+
+      renderExpenses();
+      updateReports();
+    });
+  </script>
+</body>
+</html>
